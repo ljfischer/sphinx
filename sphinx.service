@@ -1,0 +1,13 @@
+[Unit]
+Description=Sphinx
+After=multi-user.target
+After=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/home/pi/projects/C/sphinx/sphinx
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
+
