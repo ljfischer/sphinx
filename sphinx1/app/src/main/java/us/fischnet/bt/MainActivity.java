@@ -92,11 +92,10 @@ public class MainActivity extends Activity {
     public void spCnct(View v) {
         // this initiates a BT connection to the Sphinx application
 
-        Intent intent = new Intent(getApplicationContext(), spCnct.class);
-        intent.putExtra("TARGET_BT_DEVICE",address);
+        //Intent intent = new Intent(getApplicationContext(), spCnct.class);
+        //intent.putExtra("TARGET_BT_DEVICE",address);
         //startActivityForResult(intent,0);
-        sphinxBTDevice=new spCnct();
-
+        sphinxBTDevice=new spCnct(address);
     }
 
     public void list(View v) {

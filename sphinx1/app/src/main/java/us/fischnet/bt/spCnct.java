@@ -1,9 +1,8 @@
 package us.fischnet.bt;
 
-import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 
@@ -16,10 +15,10 @@ import java.util.UUID;
  * Created by lfischer on 3/8/2017.
  */
 
-public class spCnct extends Activity {
+public class spCnct {
     private UUID myUUID;
 
-    private final String MY_UUID_INSECURE =
+    private final String Sphinx_UUID =
             "5a830267-68ec-4c97-a4f9-b9d4f5e89cf3";
     // message codes
     private static final byte COMMAND_CODE = '$'; // precedes a command byte
@@ -44,12 +43,24 @@ public class spCnct extends Activity {
 
     private long cntStart=0,cntAbort=0,cntDone=0,cntIdle=0,cntErr=0,cmdDropped=0;
     private long cntHor=0,cntUp=0,cntDown=0,cntSculpt=0,cntFace=0,cntTooClose=0,cntTooShaky=0,cntTooDark=0,cntTooFast=0;
-
+    private BluetoothAdapter mAdapter;
     ThreadConnectBTdevice myThreadConnectBTdevice;
     ThreadConnected myThreadConnected;
     String address;
 
+    public  spCnct (String Addr) {
+        BluetoothDevice device;
+        myUUID = UUID.fromString(Sphinx_UUID);
+        mAdapter = BluetoothAdapter.getDefaultAdapter();
 
+        address=Addr;
+        device = mAdapter.getRemoteDevice(address);
+        myThreadConnectBTdevice = new ThreadConnectBTdevice(device);
+        myThreadConnectBTdevice.start();
+    }
+
+/*
+/*
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_term);
@@ -58,6 +69,7 @@ public class spCnct extends Activity {
             address = extras.getString("TARGET_BT_DEVICE");
         }
     }
+    */
     //myThreadConnectBTdevice = new ThreadConnectBTdevice(device);
     //myThreadConnectBTdevice.start();
     /*
