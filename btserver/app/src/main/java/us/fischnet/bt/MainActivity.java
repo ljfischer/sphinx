@@ -186,40 +186,41 @@ public class MainActivity extends Activity {
                                       if (ptr!=bytesRead)
                                       {
                                           cmd=buffer[ptr++];
-                                          switch (cmd)
-                                          {
-                                              // these are commands received from the Arm controller phone
-                                              // need to pass these to the imaging app via some API
-                                              // for now, we just incrementing a counter, and updating display
-                                              // via the handler
-                                              case ((int) CMD_START):
-                                                  cntStart++;
-                                                  mHandler.obtainMessage((int) CMD_START)
-                                                          .sendToTarget();
-                                                  break;
-                                              case ((int) CMD_ABORT):
-                                                  cntAbort++;
-                                                  mHandler.obtainMessage((int) CMD_ABORT)
-                                                          .sendToTarget();
-                                                  break;
-                                              case ((int) CMD_DONE):
-                                                  cntDone++;
-                                                  mHandler.obtainMessage((int) CMD_DONE)
-                                                          .sendToTarget();
-                                                  break;
+                                          if (cmd>=0) {
+                                              switch (cmd) {
+                                                  // these are commands received from the Arm controller phone
+                                                  // need to pass these to the imaging app via some API
+                                                  // for now, we just incrementing a counter, and updating display
+                                                  // via the handler
+                                                  case ((int) CMD_START):
+                                                      cntStart++;
+                                                      mHandler.obtainMessage((int) CMD_START)
+                                                              .sendToTarget();
+                                                      break;
+                                                  case ((int) CMD_ABORT):
+                                                      cntAbort++;
+                                                      mHandler.obtainMessage((int) CMD_ABORT)
+                                                              .sendToTarget();
+                                                      break;
+                                                  case ((int) CMD_DONE):
+                                                      cntDone++;
+                                                      mHandler.obtainMessage((int) CMD_DONE)
+                                                              .sendToTarget();
+                                                      break;
 
+                                              }
+                                              // now ack it
+                                              cmd |= 128; // set the high bit (makes it negative in Java
+                                              addCmd(cmd); // and send it out
                                           }
-                                          // now ack it
-                                          cmd|=128; // set the high bit (makes it negative in Java
-                                          addCmd(cmd); // and send it out
+                                          else
+                                          {
+                                              // received an ack
+                                          }
                                       }
                                     else
                                           cntErr++; // we had a command code with no command
                                 }
-                                    else if (cmd<0) {
-                                    // received an Ack.  The server doesnt really care
-                                        ;
-                                    }
                                     else {
                                     cntIdle++; // this should be an idle code
                                 }
