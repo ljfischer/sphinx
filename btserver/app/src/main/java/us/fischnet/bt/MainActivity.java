@@ -209,12 +209,18 @@ public class MainActivity extends Activity {
                                                   break;
 
                                           }
+                                          // now ack it
+                                          cmd|=128; // set the high bit (makes it negative in Java
+                                          addCmd(cmd); // and send it out
                                       }
                                     else
                                           cntErr++; // we had a command code with no command
                                 }
+                                    else if (cmd<0) {
+                                    // received an Ack.  The server doesnt really care
+                                        ;
+                                    }
                                     else {
-
                                     cntIdle++; // this should be an idle code
                                 }
                             }
