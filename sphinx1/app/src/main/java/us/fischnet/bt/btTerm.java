@@ -79,7 +79,7 @@ public class btTerm extends Activity {
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
-
+    //private final Handler spMsgHandler;
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -101,6 +101,7 @@ public class btTerm extends Activity {
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             address = extras.getString("TARGET_BT_DEVICE");
+            //spMsgHandler=
             connect(false);
         }
 
@@ -184,7 +185,10 @@ public class btTerm extends Activity {
         Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
         mConnectedThread.write(buffer);
 */
+        // we need to send a start command to the sphinx app, and wait for the ack that tells us to start moving horizontally
+
         addCmd(MSG_CAL);
+
         if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(MSG_CAL);
         }
@@ -347,9 +351,6 @@ public class btTerm extends Activity {
             mConnectedThread.start();
     }
 
-/*****************/
-
-
     /************************************************************************************/
 
     private class ConnectedThread extends Thread {
@@ -365,34 +366,9 @@ public class btTerm extends Activity {
         byte [] pktBuf=new byte[PACKET_BUF_SIZE];
         int ms=0;
         boolean sec=false;
-////////
-// P2P messaging starts off unsynchronized.
-// each party sends a '$', and waits for a '#'.  When a # is received, sync is presumed valid.
-// once in sync, each party sends a ping command every X seconds.  If no response is received, sync is presumed lost.
-// if a checksum doesnt match, sync is lost
-// addressing is broken into three parts:
-/*
- * 1 - media - 4 bits
- * 2 - network - 4 bits
- * 3 - address - 8 bits
- *
- */
 
         public static final byte HDR_CMD ='$';
         public static final byte  HDR_HELLO ='#';
-
-
-//        public static final byte ADDR_BROADCAST =0xFF;		//
-
-
-
-
-        // packet structure
-//	short msgSrc; // source
-//	short msgDest; // destination
-//	unsigned char msgSeq; // sequence number
-
-
 
         public static final int MSG_MAX_DATA	=0x8; // how much data we can pass
         public static final int MSG_CMD_MASK	=0x7F; // 127 different cmd types
@@ -461,13 +437,12 @@ public class btTerm extends Activity {
   //          txByteSend(type);
 
         }
-        private void msgTimer()
+        private void TimerMethod()
         {
             byte[] buffer = new byte[1];  // buffer store for the stream
             byte cmd;
             // This routine gets called once every 25ms.
             if (sec) {
-//
                 if (lock.tryLock()){
                     try {
                         // manipulate protected state
@@ -489,8 +464,6 @@ public class btTerm extends Activity {
                 } else {
                     // perform alternative actions
                 }
-
-//                    txByteSend(HDR_HELLO);
             }
             ms+=TXMIT_TIMER_DELAY;
             if (ms==1000) {
@@ -500,14 +473,6 @@ public class btTerm extends Activity {
             else
                 sec=false;
         }
-        private void TimerMethod() {
-            //This method is called directly by the timer
-            //and runs in the same thread as the timer.
-            // only do this if we are in messaging mode
-                msgTimer();
-        }
-
-
 
         public void run() {
             byte[] buffer = new byte[1024];  // buffer store for the stream

@@ -24,14 +24,15 @@
             </intent-filter>
         </activity>
         <activity android:name="us.fischnet.bt.btTerm"
-            android:configChanges="orientation"
-            android:screenOrientation="portrait"/>
+    android:configChanges="orientation"
+    android:screenOrientation="portrait"/>
 
-        <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
-             App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
+    <!-- ATTENTION: This was auto-generated to add Google Play services to your project for
+         App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
+    <meta-data
+        android:name="com.google.android.gms.version"
+        android:value="@integer/google_play_services_version" />
 
-    </application>
+</application>
+
 </manifest>

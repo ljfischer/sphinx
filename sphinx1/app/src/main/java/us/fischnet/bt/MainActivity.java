@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.Button;
 import android.widget.TextView;
 import android.view.Menu;
@@ -38,11 +39,29 @@ public class MainActivity extends Activity {
     BluetoothDevice targetBTDevice;
     spCnct sphinxBTDevice;
 
+    public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
+    public static final byte CMD_GO_UP= CMD_GO_HORIZONTAL+1; // go up
+    public static final byte CMD_GO_DOWN= CMD_GO_UP+1; // go back to horizontal
+    public static final byte CMD_SCULPT= CMD_GO_DOWN+1; // sculpt
+    public static final byte CMD_GO_FACE= CMD_SCULPT+1; // return to face
+
+    // corrective messages from imaging app
+    public static final byte CMD_TOO_CLOSE= 16;
+    public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
+    public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
+    public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+
+    // incoming control messages from arm controller
+    public static final byte CMD_START = 64;
+    public static final byte CMD_ABORT = CMD_START+1;
+    public static final byte CMD_DONE = CMD_ABORT+1;
+
     /**
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
     private GoogleApiClient client;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,8 +93,9 @@ public class MainActivity extends Activity {
     }
 
     public void off(View v) {
-        BA.disable();
-        Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
+        //BA.disable();
+        //Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
+        sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
     }
 
     public void visible(View v) {
@@ -96,6 +116,7 @@ public class MainActivity extends Activity {
         //intent.putExtra("TARGET_BT_DEVICE",address);
         //startActivityForResult(intent,0);
         sphinxBTDevice=new spCnct(address);
+
     }
 
     public void list(View v) {
@@ -143,8 +164,4 @@ public class MainActivity extends Activity {
         }
         return super.onOptionsItemSelected(item);
     }
-
-
-
-
 }
