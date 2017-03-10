@@ -71,19 +71,6 @@ public class spCnct{
         myThreadConnectBTdevice.start();
     }
 
-/*
-/*
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_term);
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            address = extras.getString("TARGET_BT_DEVICE");
-        }
-    }
-    */
-    //myThreadConnectBTdevice = new ThreadConnectBTdevice(device);
-    //myThreadConnectBTdevice.start();
     /*
      ThreadConnectBTdevice:
      Background Thread to handle BlueTooth connecting
@@ -92,7 +79,6 @@ public class spCnct{
 
         private BluetoothSocket bluetoothSocket = null;
         private final BluetoothDevice bluetoothDevice;
-
 
 
         private ThreadConnectBTdevice(BluetoothDevice device) {
@@ -115,17 +101,7 @@ public class spCnct{
                 success = true;
             } catch (IOException e) {
                 e.printStackTrace();
-
-                final String eMessage = e.getMessage();
-                /*
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        textStatus.setText("something wrong bluetoothSocket.connect(): \n" + eMessage);
-                    }
-                });
-*/
+                // error
                 try {
                     bluetoothSocket.close();
                 } catch (IOException e1) {
@@ -136,21 +112,6 @@ public class spCnct{
 
             if (success) {
                 //connect successful
-                final String msgconnected = "connect successful:\n"
-                        + "BluetoothSocket: " + bluetoothSocket + "\n"
-                        + "BluetoothDevice: " + bluetoothDevice;
-/*
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        textStatus.setText(msgconnected);
-
-                        listViewPairedDevice.setVisibility(View.GONE);
-                        //inputPane.setVisibility(View.VISIBLE);
-                    }
-                });
-*/
                 startThreadConnected(bluetoothSocket);
 
             } else {
@@ -187,18 +148,20 @@ public class spCnct{
     Background Thread to handle Bluetooth data communication
     after connected
      */
+
+
+
     private class ThreadConnected extends Thread {
         private final BluetoothSocket connectedBluetoothSocket;
         private final InputStream connectedInputStream;
         private final OutputStream connectedOutputStream;
 
         boolean sec=false;
-        public static final int TXMIT_TIMER_DELAY	=25; // ms to sleep between tx timer
         int ms=0;
-
-
+        public static final int TXMIT_TIMER_DELAY	=25; // ms to sleep between tx timer
 
         public ThreadConnected(BluetoothSocket socket) {
+            // constructor
             connectedBluetoothSocket = socket;
             InputStream in = null;
             OutputStream out = null;
@@ -214,14 +177,136 @@ public class spCnct{
             connectedInputStream = in;
             connectedOutputStream = out;
 
+            // Create recv Thread Class
+            Thread spRcv = new Thread(new Runnable() {
+                public void run() {
+                    byte[] buffer = new byte[1024];
+                    int bytes;
+                    int idx;
+                    while (true) {
+                        try {
+                            bytes = connectedInputStream.read(buffer);  // this blocks until receipt
+                            for (idx=0;idx<bytes;idx++)
+                            {
+                                if (buffer[idx]==HELLO_CODE)
+                                {
+                                    cntIdle++;
+                                }
+                                else if (buffer[idx]==COMMAND_CODE)
+                                {
+                                    if (idx+1<bytes)
+                                    {
+                                        // we got a cmd code, and there is another byte
+                                        byte cmd=buffer[++idx]; // get the command
+                                        if (cmd>=0) {
+                                            switch (cmd) {
+                                                case CMD_GO_HORIZONTAL:
+                                                    cntHor++;
+//                                        tv1.setText("# Hor: "+String.format("%d",cntHor));
+                                                    //mHandler.obtainMessage((int) CMD_GO_HORIZONTAL).sendToTarget();
+                                                    break;
+                                                case CMD_GO_UP:
+                                                    cntUp++;
+//                                        tv2.setText("# Up: "+String.format("%d",cntUp));
+                                                    //mHandler.obtainMessage((int) CMD_GO_UP).sendToTarget();
+                                                    break;
+                                                case CMD_GO_DOWN:
+                                                    cntDown++;
+//                                        tv3.setText("# Down: "+String.format("%d",cntDown));
+                                                    //mHandler.obtainMessage((int) CMD_GO_DOWN).sendToTarget();
+                                                    break;
+                                                case CMD_SCULPT:
+                                                    cntSculpt++;
+//                                        tv4.setText("# Sculpt: "+String.format("%d",cntSculpt));
+                                                    //mHandler.obtainMessage((int) CMD_SCULPT).sendToTarget();
+                                                    break;
+                                                case CMD_GO_FACE:
+                                                    cntFace++;
+//                                        tv5.setText("# Face: "+String.format("%d",cntFace));
+                                                    //mHandler.obtainMessage((int) CMD_GO_FACE).sendToTarget();
+                                                    break;
+                                                case CMD_TOO_CLOSE:
+                                                    cntTooClose++;
+//                                        tv6.setText("# Close: "+String.format("%d",cntTooClose));
+                                                    //mHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
+                                                    break;
+                                                case CMD_TOO_SHAKY:
+                                                    cntTooShaky++;
+//                                        tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
+                                                    //mHandler.obtainMessage((int) CMD_TOO_SHAKY).sendToTarget();
+                                                    break;
+                                                case CMD_TOO_DARK:
+                                                    cntTooDark++;
+//                                        tv8.setText("# Dark: "+String.format("%d",cntTooDark));
+                                                    //mHandler.obtainMessage((int) CMD_TOO_DARK).sendToTarget();
+                                                    break;
+                                                case CMD_TOO_FAST:
+                                                    cntTooFast++;
+//                                        tv9.setText("# Fast: "+String.format("%d",cntTooFast));
+                                                    //mHandler.obtainMessage((int) CMD_TOO_FAST).sendToTarget();
+                                                    break;
+
+                                                // These are simply for display.  Commands received from arm controller
+                                                case CMD_START:
+//                                        tv10.setText("# Fast: "+String.format("%d",cntStart));
+                                                    mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
+                                                    break;
+                                                case CMD_ABORT:
+//                                        tv11.setText("# Fast: "+String.format("%d",cntAbort));
+                                                    mSpHandler.obtainMessage((int) CMD_ABORT).sendToTarget();
+                                                    break;
+                                                case CMD_DONE:
+//                                        tv12.setText("# Fast: "+String.format("%d",cntDone));
+                                                    mSpHandler.obtainMessage((int) CMD_DONE).sendToTarget();
+                                                    break;
+                                            }
+
+                                            byte[] buf1 = new byte[1];
+                                            cmd |= 128;
+                                            addCmd(cmd);
+                                        }
+                                        else
+                                        {
+                                            // received an ack
+                                        }
+                                    }
+                                    else
+                                        cntErr++;
+                                }
+                            }
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+
+                        }
+                    }
+
+                }
+/*
+                private final Handler handler = new Handler() {
+
+                    public void handleMessage(Message msg) {
+
+                        String aResponse = msg.getData().getString("message");
+
+                    }
+                };
+*/
+            });
+
+            spRcv.start(); // start the recv thread
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    TimerMethod();
+                    TimerMethod(); // the timer method is responsible for transmitting commands to the Sphinx app/phone
                 }
 
             }, 0, TXMIT_TIMER_DELAY); // no delay, run every 25ms
+
+            //  OK - as I research all this, I realize that android has interfaces, designed for this
+            // but Im rushed now, so Im doing it quick and dirty. :(
+
         }
         public boolean addCmd(byte cmd)
         {
@@ -240,18 +325,10 @@ public class spCnct{
                 txqHead=0;
             return true;
 
-            /*
-            byte[] cmdBuf = new byte[2];
-            cmdBuf[0]=COMMAND_CODE;
-            cmdBuf[1]=cmd;
-            write(cmdBuf);
-            */
         }
         @Override
         public void run() {
-            byte[] buffer = new byte[1024];
-            int bytes;
-            int idx;
+
             Looper.prepare();
 
             mSpHandler = new Handler() {
@@ -303,124 +380,15 @@ public class spCnct{
                     }
                 }
             };
-            Looper.loop();
+            Looper.loop(); // this blocks and feeds messages to the handler
 
-            while (true) {
-                try {
-                    bytes = connectedInputStream.read(buffer);  // this blocks until receipt
-                    for (idx=0;idx<bytes;idx++)
-                    {
-                        if (buffer[idx]==HELLO_CODE)
-                        {
-                            cntIdle++;
-                        }
-                        else if (buffer[idx]==COMMAND_CODE)
-                        {
-                            if (idx+1<bytes)
-                            {
-                                // we got a cmd code, and there is another byte
-                                byte cmd=buffer[++idx]; // get the command
-
-                                switch (cmd)
-                                {
-                                    case CMD_GO_HORIZONTAL:
-                                    cntHor++;
-//                                        tv1.setText("# Hor: "+String.format("%d",cntHor));
-                                        //mHandler.obtainMessage((int) CMD_GO_HORIZONTAL).sendToTarget();
-                                        break;
-                                    case CMD_GO_UP:
-                                        cntUp++;
-//                                        tv2.setText("# Up: "+String.format("%d",cntUp));
-                                        //mHandler.obtainMessage((int) CMD_GO_UP).sendToTarget();
-                                        break;
-                                    case CMD_GO_DOWN:
-                                        cntDown++;
-//                                        tv3.setText("# Down: "+String.format("%d",cntDown));
-                                        //mHandler.obtainMessage((int) CMD_GO_DOWN).sendToTarget();
-                                        break;
-                                    case CMD_SCULPT:
-                                        cntSculpt++;
-//                                        tv4.setText("# Sculpt: "+String.format("%d",cntSculpt));
-                                        //mHandler.obtainMessage((int) CMD_SCULPT).sendToTarget();
-                                        break;
-                                    case CMD_GO_FACE:
-                                        cntFace++;
-//                                        tv5.setText("# Face: "+String.format("%d",cntFace));
-                                        //mHandler.obtainMessage((int) CMD_GO_FACE).sendToTarget();
-                                        break;
-                                    case CMD_TOO_CLOSE:
-                                        cntTooClose++;
-//                                        tv6.setText("# Close: "+String.format("%d",cntTooClose));
-                                        //mHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
-                                        break;
-                                    case CMD_TOO_SHAKY:
-                                        cntTooShaky++;
-//                                        tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
-                                        //mHandler.obtainMessage((int) CMD_TOO_SHAKY).sendToTarget();
-                                        break;
-                                    case CMD_TOO_DARK:
-                                        cntTooDark++;
-//                                        tv8.setText("# Dark: "+String.format("%d",cntTooDark));
-                                        //mHandler.obtainMessage((int) CMD_TOO_DARK).sendToTarget();
-                                        break;
-                                    case CMD_TOO_FAST:
-                                        cntTooFast++;
-//                                        tv9.setText("# Fast: "+String.format("%d",cntTooFast));
-                                        //mHandler.obtainMessage((int) CMD_TOO_FAST).sendToTarget();
-                                        break;
-
-                                    // These are simply for display.  Commands received from arm controller
-                                    case CMD_START:
-//                                        tv10.setText("# Fast: "+String.format("%d",cntStart));
-                                        mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
-                                        break;
-                                    case CMD_ABORT:
-//                                        tv11.setText("# Fast: "+String.format("%d",cntAbort));
-                                        mSpHandler.obtainMessage((int) CMD_ABORT).sendToTarget();
-                                        break;
-                                    case CMD_DONE:
-//                                        tv12.setText("# Fast: "+String.format("%d",cntDone));
-                                        mSpHandler.obtainMessage((int) CMD_DONE).sendToTarget();
-                                        break;
-                                }
-
-                                byte[] buf1 = new byte[1];
-                                cmd|=128;
-                                //buf1[0]=cmd; // ack the command
-                                //write(buf1);
-                                addCmd(cmd);
-                            }
-                            else if (buffer[idx]<0)
-                            {
-                                // an ack to our command
-                                byte ack=buffer[idx]; // get the ack
-                                cntAck++;
-                            }
-                            else
-                                cntErr++;
-                        }
-                    }
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-/*
-                    final String msgConnectionLost = "Connection lost:\n"
-                            + e.getMessage();
-                    runOnUiThread(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            textStatus.setText(msgConnectionLost);
-                        }
-                    });
-                    */
-                }
-            }
         }
 
 
         private void TimerMethod()
         {
+
+
             byte[] buffer = new byte[1];  // buffer store for the stream
             byte cmd;
             // This routine gets called once every 25ms.

@@ -432,10 +432,6 @@ public class btTerm extends Activity {
             } else {
                 // perform alternative actions
             }
-  //
-//            txByteSend(HDR_CMD);
-  //          txByteSend(type);
-
         }
         private void TimerMethod()
         {
