@@ -26,6 +26,9 @@ import java.util.concurrent.locks.ReentrantLock;
 public class spCnct{
     private UUID myUUID;
     public Handler mSpHandler;
+    public Handler mBtHandler=null;
+    public btTerm btTermObj;
+
     ReentrantLock lock;
     private final String Sphinx_UUID =
             "5a830267-68ec-4c97-a4f9-b9d4f5e89cf3";
@@ -36,14 +39,25 @@ public class spCnct{
     public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public static final byte CMD_GO_UP= CMD_GO_HORIZONTAL+1; // go up
     public static final byte CMD_GO_DOWN= CMD_GO_UP+1; // go back to horizontal
-    public static final byte CMD_SCULPT= CMD_GO_DOWN+1; // sculpt
-    public static final byte CMD_GO_FACE= CMD_SCULPT+1; // return to face
+    public static final byte CMD_GO_SCULPT= CMD_GO_DOWN+1; // sculpt
+    public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
 
     // corrective messages from imaging app
     public static final byte CMD_TOO_CLOSE= 16;
     public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
     public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
     public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+
+    // arm control messages - these map directly to the RPI commands
+    public static final byte CMD_PARK = 0x30;       // we're doing nothing
+    public static final byte CMD_HOR = CMD_PARK+1;       // we're doing nothing
+    public static final byte CMD_UP = CMD_HOR+1;       // we're doing nothing
+    public static final byte CMD_DOWN = CMD_UP+1;       // we're doing nothing
+    public static final byte CMD_CCW = CMD_DOWN+1;       // we're doing nothing
+    public static final byte CMD_CW = CMD_CCW+1;       // we're doing nothing
+    public static final byte CMD_CAL = CMD_CW+1;       // we're doing nothing
+    public static final byte CMD_SCULPT = CMD_CAL+1;       // we're doing nothing
+    public static final byte CMD_HOME = CMD_SCULPT+1;       // we're doing nothing
 
     // incoming control messages from arm controller
     public static final byte CMD_START = 64;
@@ -57,6 +71,7 @@ public class spCnct{
     ThreadConnected myThreadConnected;
     String address;
 
+
     byte txQ[]=new byte[32];
     byte txqHead=0,txqTail=0;
 
@@ -69,7 +84,9 @@ public class spCnct{
         device = mAdapter.getRemoteDevice(address);
         myThreadConnectBTdevice = new ThreadConnectBTdevice(device);
         myThreadConnectBTdevice.start();
+
     }
+
 
     /*
      ThreadConnectBTdevice:
@@ -134,6 +151,13 @@ public class spCnct{
 
         }
 
+    }
+    public void setBtHandler(Handler hand) {
+        mBtHandler=hand;
+    }
+    public void setBtObj(btTerm btT) {
+        btTermObj=btT;
+        btTermObj.addMsg((byte) 1);
     }
 
      //Called in ThreadConnectBTdevice once connect successed
@@ -229,6 +253,13 @@ public class spCnct{
                                                     cntTooClose++;
 //                                        tv6.setText("# Close: "+String.format("%d",cntTooClose));
                                                     //mHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
+
+                                                    /*
+                                                    // Hmm - wanted to do this via handler, but the remote handler
+                                                     // doesnt work, and throws an exception.
+                                                    if (mBtHandler!=null)
+                                                        mBtHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
+                                                        */
                                                     break;
                                                 case CMD_TOO_SHAKY:
                                                     cntTooShaky++;
@@ -328,6 +359,9 @@ public class spCnct{
         }
         @Override
         public void run() {
+
+
+
 
             Looper.prepare();
 

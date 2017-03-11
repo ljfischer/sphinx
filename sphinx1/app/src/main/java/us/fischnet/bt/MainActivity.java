@@ -35,21 +35,31 @@ public class MainActivity extends Activity {
     private BluetoothAdapter BA;
     private Set<BluetoothDevice> pairedDevices;
     ListView lv;
-    String address; // target device
+    String address,rpiAddress,spAddress; // target device
     BluetoothDevice targetBTDevice;
-    spCnct sphinxBTDevice;
 
     public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public static final byte CMD_GO_UP= CMD_GO_HORIZONTAL+1; // go up
     public static final byte CMD_GO_DOWN= CMD_GO_UP+1; // go back to horizontal
-    public static final byte CMD_SCULPT= CMD_GO_DOWN+1; // sculpt
-    public static final byte CMD_GO_FACE= CMD_SCULPT+1; // return to face
+    public static final byte CMD_GO_SCULPT= CMD_GO_DOWN+1; // sculpt
+    public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
 
     // corrective messages from imaging app
     public static final byte CMD_TOO_CLOSE= 16;
     public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
     public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
     public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+
+    // arm control messages - these map directly to the RPI commands
+    public static final byte CMD_PARK = 0x30;       // we're doing nothing
+    public static final byte CMD_HOR = CMD_PARK+1;       // we're doing nothing
+    public static final byte CMD_UP = CMD_HOR+1;       // we're doing nothing
+    public static final byte CMD_DOWN = CMD_UP+1;       // we're doing nothing
+    public static final byte CMD_CCW = CMD_DOWN+1;       // we're doing nothing
+    public static final byte CMD_CW = CMD_CCW+1;       // we're doing nothing
+    public static final byte CMD_CAL = CMD_CW+1;       // we're doing nothing
+    public static final byte CMD_SCULPT = CMD_CAL+1;       // we're doing nothing
+    public static final byte CMD_HOME = CMD_SCULPT+1;       // we're doing nothing
 
     // incoming control messages from arm controller
     public static final byte CMD_START = 64;
@@ -83,6 +93,7 @@ public class MainActivity extends Activity {
     }
 
     public void on(View v) {
+        /*
         if (!BA.isEnabled()) {
             Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(turnOn, 0);
@@ -90,12 +101,16 @@ public class MainActivity extends Activity {
         } else {
             Toast.makeText(getApplicationContext(), "Already on", Toast.LENGTH_LONG).show();
         }
-    }
+        */
+        // hijacked for UT code
+        //sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
+}
 
     public void off(View v) {
         //BA.disable();
         //Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
-        sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
+        // hijacked for UT code
+
     }
 
     public void visible(View v) {
@@ -104,18 +119,22 @@ public class MainActivity extends Activity {
     }
 
     public void connect(View v) {
+        rpiAddress=address; // save the address for the RPI
         Intent intent = new Intent(getApplicationContext(), btTerm.class);
         intent.putExtra("TARGET_BT_DEVICE",address);
+        intent.putExtra("TARGET_SP_DEVICE",spAddress);
         startActivityForResult(intent,0);
+
+        // now give each BT thread, the other guy's handler so they can send messages to each other
+        // challenge is, the BTThread is an activity.
+
     }
 
     public void spCnct(View v) {
-        // this initiates a BT connection to the Sphinx application
-
-        //Intent intent = new Intent(getApplicationContext(), spCnct.class);
-        //intent.putExtra("TARGET_BT_DEVICE",address);
-        //startActivityForResult(intent,0);
-        sphinxBTDevice=new spCnct(address);
+        // grabs the address for talking to the sphinx phone.
+        spAddress=address; // save the sphinx address
+        // should highlight this with a specific color
+        //sphinxBTDevice=new spCnct(address);
 
     }
 

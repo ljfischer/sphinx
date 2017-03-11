@@ -1,6 +1,7 @@
 package us.fischnet.bt;
 
 import android.app.Activity;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -8,7 +9,11 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -40,17 +45,22 @@ public class btTerm extends Activity {
     byte txQ[]=new byte[32];
     byte txqHead=0,txqTail=0;
 
+    byte txM[]=new byte[32];
+    byte txmHead=0,txmTail=0;
+
+    public Handler mSpHandler=null;
+    spCnct sphinxBTDevice;
+
     TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9,tv10,tv11,tv12;
     private BluetoothAdapter mAdapter;
-
+    Thread BTConnThread;
     ReentrantLock lock;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private int mState;
 
-    String address;
-
-    // Constants that indicate the current connection state
+    String address,spAddress;
+/*
     public static final byte MSG_PARK = 0x30;       // we're doing nothing
     public static final byte MSG_HOR = 0x31;       // we're doing nothing
     public static final byte MSG_UP = 0x32;       // we're doing nothing
@@ -60,9 +70,38 @@ public class btTerm extends Activity {
     public static final byte MSG_CAL = 0x36;       // we're doing nothing
     public static final byte MSG_SCULPT = 0x37;       // we're doing nothing
     public static final byte MSG_HOME = 0x38;       // we're doing nothing
+*/
+///
+public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
+    public static final byte CMD_GO_UP= CMD_GO_HORIZONTAL+1; // go up
+    public static final byte CMD_GO_DOWN= CMD_GO_UP+1; // go back to horizontal
+    public static final byte CMD_GO_SCULPT= CMD_GO_DOWN+1; // sculpt
+    public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
+
+    // corrective messages from imaging app
+    public static final byte CMD_TOO_CLOSE= 16;
+    public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
+    public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
+    public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+
+    // arm control messages - these map directly to the RPI commands
+    public static final byte CMD_PARK = 0x30;       // we're doing nothing
+    public static final byte CMD_HOR = CMD_PARK+1;       // we're doing nothing
+    public static final byte CMD_UP = CMD_HOR+1;       // we're doing nothing
+    public static final byte CMD_DOWN = CMD_UP+1;       // we're doing nothing
+    public static final byte CMD_CCW = CMD_DOWN+1;       // we're doing nothing
+    public static final byte CMD_CW = CMD_CCW+1;       // we're doing nothing
+    public static final byte CMD_CAL = CMD_CW+1;       // we're doing nothing
+    public static final byte CMD_SCULPT = CMD_CAL+1;       // we're doing nothing
+    public static final byte CMD_HOME = CMD_SCULPT+1;       // we're doing nothing
+
+    // incoming control messages from arm controller
+    public static final byte CMD_START = 64;
+    public static final byte CMD_ABORT = CMD_START+1;
+    public static final byte CMD_DONE = CMD_ABORT+1;
+    ///
 
     public static final int ACTION_REQUEST_ENABLE = 1;
-
 
     public static final String TAG = "MainActivity";
 
@@ -101,19 +140,38 @@ public class btTerm extends Activity {
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             address = extras.getString("TARGET_BT_DEVICE");
-            //spMsgHandler=
-            connect(false);
+            spAddress=extras.getString("TARGET_SP_DEVICE");
+            sphinxBTDevice=new spCnct(spAddress);
+            if (sphinxBTDevice!=null)
+                sphinxBTDevice.setBtObj(this);
+            connect(false); // connects to the RPI
         }
 
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
+
+
+
     public void data(View v) {
 
         //mConnectedThread.startMsg();
+        sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_PARK).sendToTarget();
     }
 
+    public boolean addMsg(byte msg) {
+        if (txmHead+1==txmTail)
+            return false;
+        if (txmHead==32-1 && txmTail==0)
+            return false;
+        // we have room
+        txM[txmHead]=msg;
+        txmHead++;
+        if (txmHead==32) // wrapped
+            txmHead=0;
+        return true;
+    }
 
     public boolean addCmd(byte cmd) {
         if (txqHead+1==txqTail)
@@ -129,25 +187,26 @@ public class btTerm extends Activity {
     }
     public void Park(View v) {
 
-        addCmd(MSG_PARK);
+        //addCmd(CMD_PARK);
         if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(MSG_PARK);
+            mConnectedThread.mBtHandler.obtainMessage((int) CMD_PARK).sendToTarget();
         }
 
     }
     public void Up(View v) {
-        addCmd(MSG_UP);
+        addCmd(CMD_UP);
         if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(MSG_UP);
         }
 
     }
     public void Down(View v) {
-        mConnectedThread.sndPacket(MSG_DOWN);
+        mConnectedThread.sndPacket(CMD_DOWN);
     }
     public void Hor(View v) {
 
-        addCmd(MSG_HOR);
+        addCmd(CMD_HOR);
         if (mConnectedThread!=null) {
            // mConnectedThread.sndPacket(MSG_HOR);
         }
@@ -160,9 +219,9 @@ public class btTerm extends Activity {
         Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
         mConnectedThread.write(buffer);
 */
-        addCmd(MSG_CW);
+        addCmd(CMD_CW);
         if (mConnectedThread!=null) {
-            //mConnectedThread.sndPacket(MSG_CW);
+            //mConnectedThread.sndPacket(CMD_CW);
         }
     }
     public void ccw(View v) {
@@ -172,9 +231,9 @@ public class btTerm extends Activity {
         Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
         mConnectedThread.write(buffer);
 */
-        addCmd(MSG_CCW);
+        addCmd(CMD_CCW);
         if (mConnectedThread!=null) {
-           // mConnectedThread.sndPacket(MSG_CCW);
+           // mConnectedThread.sndPacket(CMD_CCW);
         }
 
     }
@@ -187,10 +246,10 @@ public class btTerm extends Activity {
 */
         // we need to send a start command to the sphinx app, and wait for the ack that tells us to start moving horizontally
 
-        addCmd(MSG_CAL);
-
-        if (mConnectedThread!=null) {
-            //mConnectedThread.sndPacket(MSG_CAL);
+        //addCmd(CMD_CAL);
+         if (mConnectedThread!=null) {
+            //mConnectedThread.sndPacket(CMD_CAL);
+             mConnectedThread.mBtHandler.obtainMessage((int) CMD_CAL).sendToTarget();
         }
     }
     public void sculpt(View v) {
@@ -200,9 +259,9 @@ public class btTerm extends Activity {
         Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
         mConnectedThread.write(buffer);
 */
-        addCmd(MSG_SCULPT);
+        addCmd(CMD_SCULPT);
         if (mConnectedThread!=null) {
-            //mConnectedThread.sndPacket(MSG_SCULPT);
+            //mConnectedThread.sndPacket(CMD_SCULPT);
         }
     }
     public void home(View v) {
@@ -212,9 +271,9 @@ public class btTerm extends Activity {
         Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
         mConnectedThread.write(buffer);
 */
-        addCmd(MSG_HOME);
+        addCmd(CMD_HOME);
         if (mConnectedThread!=null) {
-            //mConnectedThread.sndPacket(MSG_HOME);
+            //mConnectedThread.sndPacket(CMD_HOME);
         }
     }
     public void close(View v) {
@@ -235,7 +294,7 @@ public class btTerm extends Activity {
      * @param secure Socket Security type - Secure (true) , Insecure (false)
      */
     public synchronized void connect(boolean secure) {
-        Thread BTConnThread;
+
         BluetoothDevice device;
         mAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -360,6 +419,8 @@ public class btTerm extends Activity {
         private int  msgState=0;
         byte[] dataBuf=new byte[MSG_MAX_DATA]; // buffer for msg
         int msgType,msgChk,msgLen;
+        public Handler mBtHandler;
+
 
         int bytesSent,bytesRcved,dataRcved,msgsRcved,msgsSent,msgRty;
         int syncSent,syncLost,ackRcved;
@@ -475,7 +536,74 @@ public class btTerm extends Activity {
             String buf;
             int bytes,i; // bytes returned from read()
 
+
+            Looper.prepare();
+
+            mBtHandler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case CMD_GO_HORIZONTAL:
+                            //tv1.setText("# Hor: "+String.format("%d",cntHor));
+                            break;
+                        case CMD_GO_UP:
+                            //tv2.setText("# Up: "+String.format("%d",cntUp));
+                            break;
+                        case CMD_GO_DOWN:
+                            //tv3.setText("# Down: "+String.format("%d",cntDown));
+                            break;
+                        case CMD_SCULPT:
+                            //tv4.setText("# Sculpt: "+String.format("%d",cntSculpt));
+                            break;
+                        case CMD_GO_FACE:
+                            //tv5.setText("# Face: "+String.format("%d",cntFace));
+                            break;
+                        case CMD_TOO_CLOSE:
+                            //tv6.setText("# Close: "+String.format("%d",cntTooClose));
+                            break;
+                        case CMD_TOO_SHAKY:
+                            //tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
+                            break;
+                        case CMD_TOO_DARK:
+                            //tv8.setText("# Dark: "+String.format("%d",cntTooDark));
+                            break;
+                        case CMD_TOO_FAST:
+                            //tv9.setText("# Fast: "+String.format("%d",cntTooFast));
+                            break;
+
+
+                        case CMD_START:
+                            //tv10.setText("# Fast: "+String.format("%d",cntStart));
+                            addCmd(CMD_START);
+                            break;
+                        case CMD_ABORT:
+                            //tv11.setText("# Fast: "+String.format("%d",cntAbort));
+                            break;
+                        case CMD_DONE:
+                            //tv12.setText("# Fast: "+String.format("%d",cntDone));
+                            break;
+
+                        case CMD_PARK:
+                            //tv12.setText("# Fast: "+String.format("%d",cntDone));
+                            addCmd(CMD_PARK);
+                            break;
+                        case CMD_CAL:
+                            //tv12.setText("# Fast: "+String.format("%d",cntDone));
+                            addCmd(CMD_CAL);
+                            break;
+                    }
+                }
+            };
+            // give the sphinx thread, our handler so he can send us messages
+            // - sigh.  using this handler from another thread caused crashes in the handler code
+            if (sphinxBTDevice!=null)
+                sphinxBTDevice.setBtHandler(mBtHandler);
+
+            Looper.loop(); // this blocks and feeds messages to the handler
+
             // Keep listening to the InputStream until an exception occurs
+            // not currently taking chars back from the RPI.  Will implement separate thread if needed
+            // thus, this code is superfluous
             while (true) {
                 try {
                     // Read from the InputStream
