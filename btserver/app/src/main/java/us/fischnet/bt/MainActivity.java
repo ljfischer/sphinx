@@ -21,11 +21,12 @@ import java.util.UUID;
 public class MainActivity extends Activity {
     Button b1,b2;
     TextView tv10,tv11,tv12;
-    TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9;
+    TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9,tvIdle;
 
     // message codes
     private static final byte COMMAND_CODE = '$'; // precedes a command byte
     private static final byte HELLO_CODE = '#'; // send if there is no command to send - keepalive
+    private static final int MSG_IDLE = 1024; //
 
     private static final byte WRITER_SLEEP_MS = 100; // how many ticks we wait based on 100ms thread sleep
     private static final byte KEEPALIVE_TIMER = 1000/WRITER_SLEEP_MS; // how many iterations we wait based on thread sleep ms count
@@ -98,7 +99,7 @@ public class MainActivity extends Activity {
         tv7 = (TextView) findViewById(R.id.textView16);
         tv8 = (TextView) findViewById(R.id.textView17);
         tv9 = (TextView) findViewById(R.id.textView18);
-
+        tvIdle = (TextView) findViewById(R.id.tvIdle);
         //Always make sure that Bluetooth server is discoverable during listening...
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
@@ -223,6 +224,8 @@ public class MainActivity extends Activity {
                                 }
                                     else {
                                     cntIdle++; // this should be an idle code
+                                    mHandler.obtainMessage((int) MSG_IDLE)
+                                            .sendToTarget();
                                 }
                             }
                             // update the message timestamp
@@ -362,6 +365,9 @@ public class MainActivity extends Activity {
                     break;
                 case CMD_DONE:
                     tv12.setText("# Done: "+String.format("%d",cntDone));
+                    break;
+                case MSG_IDLE:
+                    tvIdle.setText("# Idle: "+String.format("%d",cntIdle));
                     break;
 
             }
