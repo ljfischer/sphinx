@@ -118,4 +118,37 @@
         android:layout_alignEnd="@+id/button9"
         android:id="@+id/button16" />
 
+    <Button
+        android:text="Start"
+        android:onClick="clkStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/button14"
+        android:layout_alignRight="@+id/button14"
+        android:layout_alignEnd="@+id/button14"
+        android:layout_marginTop="73dp"
+        android:id="@+id/buttonStart" />
+
+    <Button
+        android:text="Abort"
+        android:onClick="clkAbort"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonAbort"
+        android:layout_alignBaseline="@+id/buttonStart"
+        android:layout_alignBottom="@+id/buttonStart"
+        android:layout_alignLeft="@+id/button15"
+        android:layout_alignStart="@+id/button15" />
+
+    <Button
+        android:text="Done"
+        android:onClick="clkDone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonDone"
+        android:layout_alignBaseline="@+id/buttonAbort"
+        android:layout_alignBottom="@+id/buttonAbort"
+        android:layout_alignLeft="@+id/button16"
+        android:layout_alignStart="@+id/button16" />
+
 </RelativeLayout >

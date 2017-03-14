@@ -407,9 +407,11 @@ public class spCnct{
                             break;
                         case CMD_ABORT:
                             //tv11.setText("# Fast: "+String.format("%d",cntAbort));
+                            addCmd(CMD_ABORT);
                             break;
                         case CMD_DONE:
                             //tv12.setText("# Fast: "+String.format("%d",cntDone));
+                            addCmd(CMD_DONE);
                             break;
                     }
                 }

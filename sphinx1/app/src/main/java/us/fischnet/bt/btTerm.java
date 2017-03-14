@@ -140,10 +140,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             address = extras.getString("TARGET_BT_DEVICE");
+
             spAddress=extras.getString("TARGET_SP_DEVICE");
             sphinxBTDevice=new spCnct(spAddress);
             if (sphinxBTDevice!=null)
                 sphinxBTDevice.setBtObj(this);
+
             connect(false); // connects to the RPI
         }
 
@@ -152,12 +154,26 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-
+    public void clkStart(View v) {
+        //addCmd(CMD_START);
+        if (sphinxBTDevice!=null)
+            sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
+    }
+    public void clkAbort(View v) {
+        //addCmd(CMD_ABORT);
+        if (sphinxBTDevice!=null)
+            sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_ABORT).sendToTarget();
+    }
+    public void clkDone(View v) {
+        //addCmd(CMD_DONE);
+        if (sphinxBTDevice!=null)
+            sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_DONE).sendToTarget();
+    }
 
     public void data(View v) {
 
         //mConnectedThread.startMsg();
-        sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_PARK).sendToTarget();
+        //sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_PARK).sendToTarget();
     }
 
     public boolean addMsg(byte msg) {
@@ -194,12 +210,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         }
 
     }
+
     public void Up(View v) {
         addCmd(CMD_UP);
         if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(MSG_UP);
         }
-
     }
     public void Down(View v) {
         mConnectedThread.sndPacket(CMD_DOWN);
