@@ -42,14 +42,15 @@ import us.fischnet.myapplication.R;
 public class btTerm extends Activity {
     // Member fields
     Button b1;
-    byte txQ[]=new byte[32];
+    public static final int TX_QUE_SIZE = 32;
+    byte txQ[]=new byte[TX_QUE_SIZE];
     byte txqHead=0,txqTail=0;
 
-    byte txM[]=new byte[32];
+    byte txM[]=new byte[TX_QUE_SIZE];
     byte txmHead=0,txmTail=0;
 
     public Handler mSpHandler=null;
-    spCnct sphinxBTDevice;
+    spCnct sphinxBTDevice=null;
 
     TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9,tv10,tv11,tv12;
     private BluetoothAdapter mAdapter;
@@ -179,12 +180,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public boolean addMsg(byte msg) {
         if (txmHead+1==txmTail)
             return false;
-        if (txmHead==32-1 && txmTail==0)
+        if (txmHead==TX_QUE_SIZE-1 && txmTail==0)
             return false;
         // we have room
         txM[txmHead]=msg;
         txmHead++;
-        if (txmHead==32) // wrapped
+        if (txmHead==TX_QUE_SIZE) // wrapped
             txmHead=0;
         return true;
     }
@@ -192,12 +193,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public boolean addCmd(byte cmd) {
         if (txqHead+1==txqTail)
             return false;
-        if (txqHead==32-1 && txqTail==0)
+        if (txqHead==TX_QUE_SIZE-1 && txqTail==0)
             return false;
         // we have room
         txQ[txqHead]=cmd;
         txqHead++;
-        if (txqHead==32) // wrapped
+        if (txqHead==TX_QUE_SIZE) // wrapped
             txqHead=0;
         return true;
     }
@@ -294,13 +295,11 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     }
     public void close(View v) {
 
-/*
-        byte [] buffer = "#".getBytes();  // const
-        Toast.makeText(getApplicationContext(), "Data", Toast.LENGTH_LONG).show();
-        mConnectedThread.write(buffer);
-*/
+        // kill the two bluetooth connections
         if (mConnectedThread!=null)
-            mConnectedThread.cancel();
+            mConnectedThread.cancel(); // this is to the RPI
+        if (sphinxBTDevice!=null)
+            sphinxBTDevice.close();
 
     }
     /**
@@ -526,11 +525,11 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
                             cmd=txQ[txqTail];
                             txByteSend(cmd);
                             txqTail++;
-                            if (txqTail==32)
+                            if (txqTail>=TX_QUE_SIZE)
                                 txqTail=0; // wrapped
                         }
                         else
-                            txByteSend(HDR_HELLO);
+                            txByteSend(HDR_HELLO); // send a hello once a sec if there was no command
                     } finally {
                         lock.unlock();
                     }
@@ -539,7 +538,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
                 }
             }
             ms+=TXMIT_TIMER_DELAY;
-            if (ms==1000) {
+            if (ms>=1000) {
                 sec = true;
                 ms=0; // reset
             }

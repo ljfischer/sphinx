@@ -1,25 +1,22 @@
 package us.fischnet.myapplication;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
-import android.net.Uri;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
-import android.widget.Button;
-import android.widget.TextView;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 
@@ -27,15 +24,18 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import us.fischnet.bt.btTerm;
-import us.fischnet.bt.spCnct;
+
+import static android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT;
 
 public class MainActivity extends Activity {
     Button b1, b2, b3, b4, b5,b6;
     private BluetoothAdapter mBtAdapter;
     private BluetoothAdapter BA;
     private Set<BluetoothDevice> pairedDevices;
+    Intent btIntent;
     ListView lv;
     String address,rpiAddress,spAddress; // target device
+    int listPos,listSPPos,listRPIPos;
     BluetoothDevice targetBTDevice;
 
     public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
@@ -78,10 +78,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        b1 = (Button) findViewById(R.id.button);
-        b2 = (Button) findViewById(R.id.button2);
         b3 = (Button) findViewById(R.id.button3);
-        b4 = (Button) findViewById(R.id.button4);
         b5 = (Button) findViewById(R.id.button5);
         b6 = (Button) findViewById(R.id.button6);
 
@@ -92,50 +89,37 @@ public class MainActivity extends Activity {
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
-    public void on(View v) {
-        /*
-        if (!BA.isEnabled()) {
-            Intent turnOn = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(turnOn, 0);
-            Toast.makeText(getApplicationContext(), "Turned on", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(getApplicationContext(), "Already on", Toast.LENGTH_LONG).show();
-        }
-        */
-        // hijacked for UT code
-        //sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
-}
 
-    public void off(View v) {
-        //BA.disable();
-        //Toast.makeText(getApplicationContext(), "Turned off", Toast.LENGTH_LONG).show();
-        // hijacked for UT code
-
-    }
-
-    public void visible(View v) {
-        Intent getVisible = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        startActivityForResult(getVisible, 0);
-    }
 
     public void connect(View v) {
         rpiAddress=address; // save the address for the RPI
-        Intent intent = new Intent(getApplicationContext(), btTerm.class);
-        intent.putExtra("TARGET_BT_DEVICE",address);
-        intent.putExtra("TARGET_SP_DEVICE",spAddress);
-        startActivityForResult(intent,0);
+        // should clear the background color of the old setting, if there was one
+        listRPIPos=listPos; // save it
+        lv.getChildAt(listRPIPos).setBackgroundColor(
+                Color.parseColor("YELLOW"));
 
-        // now give each BT thread, the other guy's handler so they can send messages to each other
-        // challenge is, the BTThread is an activity.
+        if (btIntent!=null)
+        {
+            btIntent.setFlags(FLAG_ACTIVITY_REORDER_TO_FRONT);
+        }
+        else {
+            btIntent = new Intent(getApplicationContext(), btTerm.class);
+        }
+        btIntent.putExtra("TARGET_BT_DEVICE", address);
+        btIntent.putExtra("TARGET_SP_DEVICE", spAddress);
+        startActivityForResult(btIntent, 0);
 
     }
 
     public void spCnct(View v) {
         // grabs the address for talking to the sphinx phone.
         spAddress=address; // save the sphinx address
+        listSPPos=listPos;
         // should highlight this with a specific color
-        //sphinxBTDevice=new spCnct(address);
 
+        lv.getChildAt(listSPPos).setBackgroundColor(
+                Color.parseColor("CYAN"));
+    //    Color.parseColor("#00743D"));
     }
 
     public void list(View v) {
@@ -153,9 +137,10 @@ public class MainActivity extends Activity {
         lv.setOnItemClickListener(new OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-//                Toast.makeText(getApplicationContext(), "clicked device", 2).show();
                 String info = ((TextView) view).getText().toString();
                 address = info.substring(info.length() - 17);
+                listPos=position;
+
                 for (int i=0;i<=position; i++)
                     targetBTDevice= pairedDevices.iterator().next();
             }

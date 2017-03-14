@@ -66,9 +66,9 @@ public class spCnct{
 
     private long cntStart=0,cntAbort=0,cntDone=0,cntIdle=0,cntErr=0,cmdDropped=0,cntAck=0;
     private long cntHor=0,cntUp=0,cntDown=0,cntSculpt=0,cntFace=0,cntTooClose=0,cntTooShaky=0,cntTooDark=0,cntTooFast=0;
-    private BluetoothAdapter mAdapter;
-    ThreadConnectBTdevice myThreadConnectBTdevice;
-    ThreadConnected myThreadConnected;
+    private BluetoothAdapter mAdapter=null;
+    ThreadConnectBTdevice myThreadConnectBTdevice=null;
+    ThreadConnected myThreadConnected=null;
     String address;
 
 
@@ -87,6 +87,10 @@ public class spCnct{
 
     }
 
+    public  void close () {
+        if (myThreadConnectBTdevice!=null)
+            myThreadConnectBTdevice.cancel();
+    };
 
     /*
      ThreadConnectBTdevice:
@@ -148,10 +152,9 @@ public class spCnct{
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-
         }
-
     }
+
     public void setBtHandler(Handler hand) {
         mBtHandler=hand;
     }
@@ -313,16 +316,6 @@ public class spCnct{
                     }
 
                 }
-/*
-                private final Handler handler = new Handler() {
-
-                    public void handleMessage(Message msg) {
-
-                        String aResponse = msg.getData().getString("message");
-
-                    }
-                };
-*/
             });
 
             spRcv.start(); // start the recv thread
@@ -341,7 +334,7 @@ public class spCnct{
         }
         public boolean addCmd(byte cmd)
         {
-            // add a command into the buffer
+            // add a command into the buffer to ship to the Sphinx phone
             // is it full?
 
 
