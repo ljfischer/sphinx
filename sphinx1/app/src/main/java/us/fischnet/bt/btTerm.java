@@ -143,10 +143,11 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
             address = extras.getString("TARGET_BT_DEVICE");
 
             spAddress=extras.getString("TARGET_SP_DEVICE");
-            sphinxBTDevice=new spCnct(spAddress);
-            if (sphinxBTDevice!=null)
-                sphinxBTDevice.setBtObj(this);
-
+            if (spAddress!=null) {
+                sphinxBTDevice = new spCnct(spAddress);
+                if (sphinxBTDevice != null)
+                    sphinxBTDevice.setBtObj(this);
+            }
             connect(false); // connects to the RPI
         }
 
@@ -169,12 +170,6 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         //addCmd(CMD_DONE);
         if (sphinxBTDevice!=null)
             sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_DONE).sendToTarget();
-    }
-
-    public void data(View v) {
-
-        //mConnectedThread.startMsg();
-        //sphinxBTDevice.mSpHandler.obtainMessage((int) CMD_PARK).sendToTarget();
     }
 
     public boolean addMsg(byte msg) {
@@ -263,11 +258,13 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
 */
         // we need to send a start command to the sphinx app, and wait for the ack that tells us to start moving horizontally
 
-        //addCmd(CMD_CAL);
+            addCmd(CMD_CAL);
+
          if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(CMD_CAL);
              mConnectedThread.mBtHandler.obtainMessage((int) CMD_CAL).sendToTarget();
         }
+
     }
     public void sculpt(View v) {
 
