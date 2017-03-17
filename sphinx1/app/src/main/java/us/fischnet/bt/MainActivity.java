@@ -45,10 +45,28 @@ public class MainActivity extends Activity {
     public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
 
     // corrective messages from imaging app
-    public static final byte CMD_TOO_CLOSE= 16;
-    public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
-    public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
-    public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+    public static final byte CMD_BASE_HINT= 16;
+    public static final int     kHintMsgTooHot                       = CMD_BASE_HINT; // Phone is too hot
+    public static final int     kHintMsgLowBattery                   = CMD_BASE_HINT+1; // Low battery level
+    public static final int     kHintMsgLowStorage                   = CMD_BASE_HINT+2; // Low free disk space
+    public static final int     kHintMsgLowMovementCalib             = CMD_BASE_HINT+3; // Too little movement
+    public static final int     kHintMsgLowMovementSculpt            = CMD_BASE_HINT+4; // Too little movement
+    public static final int     kHintMsgHighMovement                 = CMD_BASE_HINT+5; // Too much movement
+    public static final int     kHintMsgCoverageReminder             = CMD_BASE_HINT+6; // Remind user to cover all parts
+    public static final int     kHintMsgAlmostDone                   = CMD_BASE_HINT+7; // The scan is almost done
+    public static final int     kHintMsgFrameSubject                 = CMD_BASE_HINT+8; // Frame head and shoulder (message shown at the very start)
+    public static final int     kHintMsgOrbitAround                  = CMD_BASE_HINT+9; // Message shown before the calibration phase
+    public static final int     kHintMsgResizeBlob                   = CMD_BASE_HINT+10; // Message shown after the calibration phase
+    public static final int     kHintMsgPreSculpting                 = CMD_BASE_HINT+11; // Message shown during pre-sculpting
+    public static final int     kHintMsgPreSculptingFace             = CMD_BASE_HINT+12; // Message shown during face(180) pre-sculpting
+    public static final int     kHintMsgTrackingLost                 = CMD_BASE_HINT+13; // Tracking lost
+    public static final int     kHintMsgTooClose                     = CMD_BASE_HINT+14; // User is scanning too close
+    public static final int     kHintMsgFaceTutorialStart            = CMD_BASE_HINT+15; // Face tutorial intro message
+    public static final int     kHintMsgFaceTutorialCalibrationStart = CMD_BASE_HINT+16; // Face tutorial calibration start message
+    public static final int     kHintMsgHeadTutorialStart            = CMD_BASE_HINT+17; // Head tutorial intro message
+    public static final int     kHintMsgHeadTutorialCalibrationStart = CMD_BASE_HINT+18; // Head tutorial calibration start message
+    public static final int     kHintMsgInitialSculptingTips         = CMD_BASE_HINT+19; // Hint to the user when starting to sculpt
+
 
     // arm control messages - these map directly to the RPI commands
     public static final byte CMD_PARK = 0x30;       // we're doing nothing

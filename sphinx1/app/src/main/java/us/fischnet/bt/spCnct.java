@@ -35,6 +35,7 @@ public class spCnct{
     // message codes
     public static final byte COMMAND_CODE = '$'; // precedes a command byte
     public static final byte HELLO_CODE = '#'; // send if there is no command to send - keepalive
+    public static final byte ACK_CODE = '%'; // send if there is no command to send - keepalive
 
     public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public static final byte CMD_GO_UP= CMD_GO_HORIZONTAL+1; // go up
@@ -43,10 +44,28 @@ public class spCnct{
     public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
 
     // corrective messages from imaging app
-    public static final byte CMD_TOO_CLOSE= 16;
-    public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
-    public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
-    public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+    public static final byte CMD_BASE_HINT= 16;
+    public static final byte     kHintMsgTooHot                       = CMD_BASE_HINT; // Phone is too hot
+    public static final byte     kHintMsgLowBattery                   = CMD_BASE_HINT+1; // Low battery level
+    public static final byte     kHintMsgLowStorage                   = CMD_BASE_HINT+2; // Low free disk space
+    public static final byte     kHintMsgLowMovementCalib             = CMD_BASE_HINT+3; // Too little movement
+    public static final byte     kHintMsgLowMovementSculpt            = CMD_BASE_HINT+4; // Too little movement
+    public static final byte     kHintMsgHighMovement                 = CMD_BASE_HINT+5; // Too much movement
+    public static final byte     kHintMsgCoverageReminder             = CMD_BASE_HINT+6; // Remind user to cover all parts
+    public static final byte     kHintMsgAlmostDone                   = CMD_BASE_HINT+7; // The scan is almost done
+    public static final byte     kHintMsgFrameSubject                 = CMD_BASE_HINT+8; // Frame head and shoulder (message shown at the very start)
+    public static final byte     kHintMsgOrbitAround                  = CMD_BASE_HINT+9; // Message shown before the calibration phase
+    public static final byte     kHintMsgResizeBlob                   = CMD_BASE_HINT+10; // Message shown after the calibration phase
+    public static final byte     kHintMsgPreSculpting                 = CMD_BASE_HINT+11; // Message shown during pre-sculpting
+    public static final byte     kHintMsgPreSculptingFace             = CMD_BASE_HINT+12; // Message shown during face(180) pre-sculpting
+    public static final byte     kHintMsgTrackingLost                 = CMD_BASE_HINT+13; // Tracking lost
+    public static final byte     kHintMsgTooClose                     = CMD_BASE_HINT+14; // User is scanning too close
+    public static final byte     kHintMsgFaceTutorialStart            = CMD_BASE_HINT+15; // Face tutorial intro message
+    public static final byte     kHintMsgFaceTutorialCalibrationStart = CMD_BASE_HINT+16; // Face tutorial calibration start message
+    public static final byte     kHintMsgHeadTutorialStart            = CMD_BASE_HINT+17; // Head tutorial intro message
+    public static final byte     kHintMsgHeadTutorialCalibrationStart = CMD_BASE_HINT+18; // Head tutorial calibration start message
+    public static final byte     kHintMsgInitialSculptingTips         = CMD_BASE_HINT+19; // Hint to the user when starting to sculpt
+    public static final byte     CMD_NUM_HINTS = CMD_BASE_HINT+20; // number of hints
 
     // arm control messages - these map directly to the RPI commands
     public static final byte CMD_PARK = 0x30;       // we're doing nothing
@@ -70,6 +89,8 @@ public class spCnct{
     ThreadConnectBTdevice myThreadConnectBTdevice=null;
     ThreadConnected myThreadConnected=null;
     String address;
+    public static final int  MSG_Q_SIZE= 64;
+
 
 
     byte txQ[]=new byte[32];
@@ -160,7 +181,7 @@ public class spCnct{
     }
     public void setBtObj(btTerm btT) {
         btTermObj=btT;
-        btTermObj.addMsg((byte) 1);
+        //btTermObj.addMsg((byte) 1);
     }
 
      //Called in ThreadConnectBTdevice once connect successed
@@ -208,104 +229,50 @@ public class spCnct{
             Thread spRcv = new Thread(new Runnable() {
                 public void run() {
                     byte[] buffer = new byte[1024];
+                    byte msg;
                     int bytes;
                     int idx;
+                    int state=0; // what is our state
+
                     while (true) {
                         try {
                             bytes = connectedInputStream.read(buffer);  // this blocks until receipt
                             for (idx=0;idx<bytes;idx++)
                             {
-                                if (buffer[idx]==HELLO_CODE)
+                                msg=buffer[idx]; // get the command
+                                if (msg==HELLO_CODE)
                                 {
                                     cntIdle++;
+                                    state=0; // clear the state
                                 }
-                                else if (buffer[idx]==COMMAND_CODE)
+                                else if (msg==ACK_CODE)
                                 {
-                                    if (idx+1<bytes)
+                                    state=0x01; // set the ack state
+                                }
+                                else if (msg==COMMAND_CODE)
+                                {
+                                    state=0x02; // set the command state
+                                }
+                                else
+                                {
+                                    // not a hello, ack or command byte.  Data.  whats our state
+                                    if (state ==1)
                                     {
-                                        // we got a cmd code, and there is another byte
-                                        byte cmd=buffer[++idx]; // get the command
-                                        if (cmd>=0) {
-                                            switch (cmd) {
-                                                case CMD_GO_HORIZONTAL:
-                                                    cntHor++;
-//                                        tv1.setText("# Hor: "+String.format("%d",cntHor));
-                                                    //mHandler.obtainMessage((int) CMD_GO_HORIZONTAL).sendToTarget();
-                                                    break;
-                                                case CMD_GO_UP:
-                                                    cntUp++;
-//                                        tv2.setText("# Up: "+String.format("%d",cntUp));
-                                                    //mHandler.obtainMessage((int) CMD_GO_UP).sendToTarget();
-                                                    break;
-                                                case CMD_GO_DOWN:
-                                                    cntDown++;
-//                                        tv3.setText("# Down: "+String.format("%d",cntDown));
-                                                    //mHandler.obtainMessage((int) CMD_GO_DOWN).sendToTarget();
-                                                    break;
-                                                case CMD_SCULPT:
-                                                    cntSculpt++;
-//                                        tv4.setText("# Sculpt: "+String.format("%d",cntSculpt));
-                                                    //mHandler.obtainMessage((int) CMD_SCULPT).sendToTarget();
-                                                    break;
-                                                case CMD_GO_FACE:
-                                                    cntFace++;
-//                                        tv5.setText("# Face: "+String.format("%d",cntFace));
-                                                    //mHandler.obtainMessage((int) CMD_GO_FACE).sendToTarget();
-                                                    break;
-                                                case CMD_TOO_CLOSE:
-                                                    cntTooClose++;
-//                                        tv6.setText("# Close: "+String.format("%d",cntTooClose));
-                                                    //mHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
-
-                                                    /*
-                                                    // Hmm - wanted to do this via handler, but the remote handler
-                                                     // doesnt work, and throws an exception.
-                                                    if (mBtHandler!=null)
-                                                        mBtHandler.obtainMessage((int) CMD_TOO_CLOSE).sendToTarget();
-                                                        */
-                                                    break;
-                                                case CMD_TOO_SHAKY:
-                                                    cntTooShaky++;
-//                                        tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
-                                                    //mHandler.obtainMessage((int) CMD_TOO_SHAKY).sendToTarget();
-                                                    break;
-                                                case CMD_TOO_DARK:
-                                                    cntTooDark++;
-//                                        tv8.setText("# Dark: "+String.format("%d",cntTooDark));
-                                                    //mHandler.obtainMessage((int) CMD_TOO_DARK).sendToTarget();
-                                                    break;
-                                                case CMD_TOO_FAST:
-                                                    cntTooFast++;
-//                                        tv9.setText("# Fast: "+String.format("%d",cntTooFast));
-                                                    //mHandler.obtainMessage((int) CMD_TOO_FAST).sendToTarget();
-                                                    break;
-
-                                                // These are simply for display.  Commands received from arm controller
-                                                case CMD_START:
-//                                        tv10.setText("# Fast: "+String.format("%d",cntStart));
-                                                    mSpHandler.obtainMessage((int) CMD_START).sendToTarget();
-                                                    break;
-                                                case CMD_ABORT:
-//                                        tv11.setText("# Fast: "+String.format("%d",cntAbort));
-                                                    mSpHandler.obtainMessage((int) CMD_ABORT).sendToTarget();
-                                                    break;
-                                                case CMD_DONE:
-//                                        tv12.setText("# Fast: "+String.format("%d",cntDone));
-                                                    mSpHandler.obtainMessage((int) CMD_DONE).sendToTarget();
-                                                    break;
-                                            }
-
-                                            byte[] buf1 = new byte[1];
-                                            cmd |= 128;
-                                            addCmd(cmd);
-                                        }
-                                        else
-                                        {
-                                            // received an ack
-                                        }
+                                        // ack state
+//                                        btTermObj.addMsg(msg); // tell the main thread
+//                                        if (mBtHandler!=null)
+//                                            mBtHandler.obtainMessage(msg).sendToTarget();
                                     }
-                                    else
-                                        cntErr++;
+                                    else if (state==2)
+                                    {
+                                        // command state
+                                        msg|=CMD_BASE_HINT; //
+                                        btTermObj.addMsg(msg); // tell the main thread
+                                        if (mBtHandler!=null)
+                                            mBtHandler.obtainMessage(msg).sendToTarget();
+
+                                    }
+                                    state=0; // clear the state
                                 }
                             }
                         } catch (IOException e) {
@@ -332,6 +299,7 @@ public class spCnct{
             // but Im rushed now, so Im doing it quick and dirty. :(
 
         }
+
         public boolean addCmd(byte cmd)
         {
             // add a command into the buffer to ship to the Sphinx phone
@@ -348,8 +316,8 @@ public class spCnct{
             if (txqHead==32) // wrapped
                 txqHead=0;
             return true;
-
         }
+
         @Override
         public void run() {
 
@@ -380,19 +348,6 @@ public class spCnct{
                         case CMD_GO_FACE:
                             //tv5.setText("# Face: "+String.format("%d",cntFace));
                             break;
-                        case CMD_TOO_CLOSE:
-                            //tv6.setText("# Close: "+String.format("%d",cntTooClose));
-                            break;
-                        case CMD_TOO_SHAKY:
-                            //tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
-                            break;
-                        case CMD_TOO_DARK:
-                            //tv8.setText("# Dark: "+String.format("%d",cntTooDark));
-                            break;
-                        case CMD_TOO_FAST:
-                            //tv9.setText("# Fast: "+String.format("%d",cntTooFast));
-                            break;
-
 
                         case CMD_START:
                             //tv10.setText("# Fast: "+String.format("%d",cntStart));

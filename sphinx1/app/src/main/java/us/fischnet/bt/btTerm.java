@@ -33,6 +33,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import us.fischnet.myapplication.R;
 
+import static us.fischnet.myapplication.R.id.tvMsg;
+
 //import android.R;
 //import us.fischnet.R;
 
@@ -48,11 +50,12 @@ public class btTerm extends Activity {
 
     byte txM[]=new byte[TX_QUE_SIZE];
     byte txmHead=0,txmTail=0;
+    int cntMsg=0;
 
     public Handler mSpHandler=null;
     spCnct sphinxBTDevice=null;
 
-    TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9,tv10,tv11,tv12;
+    TextView tv1;
     private BluetoothAdapter mAdapter;
     Thread BTConnThread;
     ReentrantLock lock;
@@ -80,10 +83,28 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public static final byte CMD_GO_FACE= CMD_GO_SCULPT+1; // return to face
 
     // corrective messages from imaging app
-    public static final byte CMD_TOO_CLOSE= 16;
-    public static final byte CMD_TOO_SHAKY= CMD_TOO_CLOSE+1;
-    public static final byte CMD_TOO_DARK= CMD_TOO_SHAKY+1;
-    public static final byte CMD_TOO_FAST= CMD_TOO_DARK+1;
+    public static final byte CMD_BASE_HINT= 16;
+    public static final byte     kHintMsgTooHot                       = CMD_BASE_HINT; // Phone is too hot
+    public static final byte     kHintMsgLowBattery                   = CMD_BASE_HINT+1; // Low battery level
+    public static final byte     kHintMsgLowStorage                   = CMD_BASE_HINT+2; // Low free disk space
+    public static final byte     kHintMsgLowMovementCalib             = CMD_BASE_HINT+3; // Too little movement
+    public static final byte     kHintMsgLowMovementSculpt            = CMD_BASE_HINT+4; // Too little movement
+    public static final byte     kHintMsgHighMovement                 = CMD_BASE_HINT+5; // Too much movement
+    public static final byte     kHintMsgCoverageReminder             = CMD_BASE_HINT+6; // Remind user to cover all parts
+    public static final byte     kHintMsgAlmostDone                   = CMD_BASE_HINT+7; // The scan is almost done
+    public static final byte     kHintMsgFrameSubject                 = CMD_BASE_HINT+8; // Frame head and shoulder (message shown at the very start)
+    public static final byte     kHintMsgOrbitAround                  = CMD_BASE_HINT+9; // Message shown before the calibration phase
+    public static final byte     kHintMsgResizeBlob                   = CMD_BASE_HINT+10; // Message shown after the calibration phase
+    public static final byte     kHintMsgPreSculpting                 = CMD_BASE_HINT+11; // Message shown during pre-sculpting
+    public static final byte     kHintMsgPreSculptingFace             = CMD_BASE_HINT+12; // Message shown during face(180) pre-sculpting
+    public static final byte     kHintMsgTrackingLost                 = CMD_BASE_HINT+13; // Tracking lost
+    public static final byte     kHintMsgTooClose                     = CMD_BASE_HINT+14; // User is scanning too close
+    public static final byte     kHintMsgFaceTutorialStart            = CMD_BASE_HINT+15; // Face tutorial intro message
+    public static final byte     kHintMsgFaceTutorialCalibrationStart = CMD_BASE_HINT+16; // Face tutorial calibration start message
+    public static final byte     kHintMsgHeadTutorialStart            = CMD_BASE_HINT+17; // Head tutorial intro message
+    public static final byte     kHintMsgHeadTutorialCalibrationStart = CMD_BASE_HINT+18; // Head tutorial calibration start message
+    public static final byte     kHintMsgInitialSculptingTips         = CMD_BASE_HINT+19; // Hint to the user when starting to sculpt
+    public static final byte     CMD_NUM_HINTS = CMD_BASE_HINT+20; // number of hints
 
     // arm control messages - these map directly to the RPI commands
     public static final byte CMD_PARK = 0x30;       // we're doing nothing
@@ -95,6 +116,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     public static final byte CMD_CAL = CMD_CW+1;       // we're doing nothing
     public static final byte CMD_SCULPT = CMD_CAL+1;       // we're doing nothing
     public static final byte CMD_HOME = CMD_SCULPT+1;       // we're doing nothing
+    public static final byte CMD_SHIP = CMD_HOME+1;       // we're doing nothing
 
     // incoming control messages from arm controller
     public static final byte CMD_START = 64;
@@ -135,6 +157,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         setContentView(R.layout.activity_term);
 
         b1 = (Button) findViewById(R.id.button7);
+        tv1 = (TextView) findViewById(tvMsg);
         lock=new ReentrantLock();
 
 
@@ -155,7 +178,9 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
-
+    public void clkShip(View v) {
+        addCmd(CMD_SHIP);
+    }
     public void clkStart(View v) {
         //addCmd(CMD_START);
         if (sphinxBTDevice!=null)
@@ -173,6 +198,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
     }
 
     public boolean addMsg(byte msg) {
+        cntMsg++;
         if (txmHead+1==txmTail)
             return false;
         if (txmHead==TX_QUE_SIZE-1 && txmTail==0)
@@ -259,12 +285,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         // we need to send a start command to the sphinx app, and wait for the ack that tells us to start moving horizontally
 
             addCmd(CMD_CAL);
-
+/*
          if (mConnectedThread!=null) {
             //mConnectedThread.sndPacket(CMD_CAL);
              mConnectedThread.mBtHandler.obtainMessage((int) CMD_CAL).sendToTarget();
         }
-
+*/
     }
     public void sculpt(View v) {
 
@@ -290,6 +316,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
             //mConnectedThread.sndPacket(CMD_HOME);
         }
     }
+
     public void close(View v) {
 
         // kill the two bluetooth connections
@@ -546,7 +573,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
         public void run() {
             byte[] buffer = new byte[1024];  // buffer store for the stream
             String buf;
-            int bytes,i; // bytes returned from read()
+            int bytes; // bytes returned from read()
 
 
             Looper.prepare();
@@ -554,7 +581,12 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
             mBtHandler = new Handler() {
                 @Override
                 public void handleMessage(Message msg) {
-                    switch (msg.what) {
+
+                    if (msg.what>= CMD_BASE_HINT && msg.what< CMD_NUM_HINTS)
+                    {
+                        tv1.setText("# msgs: "+String.format("%d",cntMsg));
+                    }
+                    else switch (msg.what) {
                         case CMD_GO_HORIZONTAL:
                             //tv1.setText("# Hor: "+String.format("%d",cntHor));
                             break;
@@ -570,18 +602,7 @@ public static final byte CMD_GO_HORIZONTAL = 0; // move horizontally
                         case CMD_GO_FACE:
                             //tv5.setText("# Face: "+String.format("%d",cntFace));
                             break;
-                        case CMD_TOO_CLOSE:
-                            //tv6.setText("# Close: "+String.format("%d",cntTooClose));
-                            break;
-                        case CMD_TOO_SHAKY:
-                            //tv7.setText("# Shaky: "+String.format("%d",cntTooShaky));
-                            break;
-                        case CMD_TOO_DARK:
-                            //tv8.setText("# Dark: "+String.format("%d",cntTooDark));
-                            break;
-                        case CMD_TOO_FAST:
-                            //tv9.setText("# Fast: "+String.format("%d",cntTooFast));
-                            break;
+
 
 
                         case CMD_START:

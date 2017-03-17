@@ -151,4 +151,26 @@
         android:layout_alignLeft="@+id/button16"
         android:layout_alignStart="@+id/button16" />
 
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/buttonStart"
+        android:layout_alignLeft="@+id/buttonStart"
+        android:layout_alignStart="@+id/buttonStart"
+        android:layout_marginTop="35dp"
+        android:id="@+id/tvMsg"
+        android:layout_alignRight="@+id/buttonDone"
+        android:layout_alignEnd="@+id/buttonDone" />
+
+    <Button
+        android:text="Ship"
+        android:onClick="clkShip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button9"
+        android:layout_alignLeft="@+id/button10"
+        android:layout_alignStart="@+id/button10"
+        android:id="@+id/buttonShip" />
+
 </RelativeLayout >
