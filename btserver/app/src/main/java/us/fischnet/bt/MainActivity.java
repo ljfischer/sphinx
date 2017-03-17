@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.View;
 import android.widget.Button;
@@ -23,9 +24,12 @@ public class MainActivity extends Activity {
     TextView tv10,tv11,tv12;
     TextView tv1,tv2,tv3,tv4,tv5,tv6,tv7,tv8,tv9,tvIdle;
 
+//    public Handler mHandler;
+
     // message codes
     private static final byte COMMAND_CODE = '$'; // precedes a command byte
     private static final byte HELLO_CODE = '#'; // send if there is no command to send - keepalive
+    private static final byte ACK_CODE = '%'; // send if there is no command to send - keepalive
     private static final int MSG_IDLE = 1024; //
 
     private static final byte WRITER_SLEEP_MS = 100; // how many ticks we wait based on 100ms thread sleep
@@ -100,9 +104,16 @@ public class MainActivity extends Activity {
         tv8 = (TextView) findViewById(R.id.textView17);
         tv9 = (TextView) findViewById(R.id.textView18);
         tvIdle = (TextView) findViewById(R.id.tvIdle);
+
+        //Looper.prepare();
+//        private final Handler mHandler = new Handler()  {
+
+
         //Always make sure that Bluetooth server is discoverable during listening...
         Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         startActivityForResult(discoverableIntent, DISCOVERABLE_REQUEST_CODE);
+
+        //Looper.loop(); // this blocks and feeds messages to the handler
     }
 
     @Override
@@ -110,6 +121,9 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         android.util.Log.e("TrackingFlow", "Creating thread to start listening...");
         new Thread(reader).start();
+       // Looper.prepare();
+
+         Looper.loop(); // this blocks and feeds messages to the handler
     }
 
     @Override
@@ -211,8 +225,8 @@ public class MainActivity extends Activity {
 
                                               }
                                               // now ack it
-                                              cmd |= 128; // set the high bit (makes it negative in Java
-                                              addCmd(cmd); // and send it out
+                                              //cmd |= 128; // set the high bit (makes it negative in Java
+                                              addAck(cmd); // and send it out
                                           }
                                           else
                                           {
@@ -248,7 +262,18 @@ public class MainActivity extends Activity {
         }
     };
 
+    void addAck(byte cmd)
+    {
+        addtoTxQ(ACK_CODE);
+        addtoTxQ(cmd);
+    }
+
     void addCmd(byte cmd)
+    {
+        addtoTxQ(COMMAND_CODE);
+        addtoTxQ(cmd);
+    }
+    void addtoTxQ(byte cmd)
     {
         // add a command into the buffer
         // is it full?
@@ -261,6 +286,7 @@ public class MainActivity extends Activity {
                 cmdHead=0; // wrap the ptr
         }
     }
+
 
     private Runnable writter = new Runnable() {
 
@@ -284,8 +310,7 @@ public class MainActivity extends Activity {
                     }
                     else
                     {
-                        // there is a command to send.  Do it
-                        os.write((COMMAND_CODE));// sends over BT stack
+                        // there is a data to send.  Do it
                         cmd=cmdBuf[cmdTail++];
                         if (cmdTail==CMD_BUF_SIZE) // at end?
                             cmdTail=0; // wrap it
@@ -303,8 +328,7 @@ public class MainActivity extends Activity {
             android.util.Log.e("TrackingFlow", "Closing writer thread");
         }
     };
-
-    private final Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler()  {
         // this is a message handler to allow the android imaging app and BT thread to talk to each other.
         // it will atomically send a command out to the arm controller
         @Override
@@ -373,4 +397,6 @@ public class MainActivity extends Activity {
             }
         }
     };
+
+
 }
